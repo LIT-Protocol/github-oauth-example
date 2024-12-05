@@ -1,5 +1,7 @@
 import { useState, useEffect } from "react";
 import type { SigResponse } from "@lit-protocol/types";
+import { ethers } from "ethers";
+import { verifyMessage } from "ethers/lib/utils";
 
 import GitHubLoginButton from "./GitHubLoginButton";
 import GitHubCallback from "./GitHubCallback";
@@ -8,6 +10,7 @@ import { GitHubUser } from "./types";
 import { getPkpSessionSigs } from "./getPkpSessionSigs";
 import type { GitHubAuthData, MintedPkp, PkpSessionSigs } from "./types";
 import { pkpSign } from "./pkpSign";
+import "./App.css";
 
 function App() {
   const [githubAuthData, setGithubAuthData] = useState<GitHubAuthData | null>(
@@ -20,6 +23,7 @@ function App() {
   const [validationError, setValidationError] = useState<string | null>(null);
   const [signedData, setSignedData] = useState<SigResponse | null>(null);
   const [messageToSign, setMessageToSign] = useState<string>("");
+  const [verifiedAddress, setVerifiedAddress] = useState<string | null>(null);
 
   const isCallback = window.location.pathname === "/callback";
 
@@ -78,12 +82,43 @@ function App() {
         const signature = await pkpSign(
           pkpSessionSigs,
           mintedPkp.publicKey,
-          messageToSign || "Please enter a message"
+          messageToSign
         );
         setSignedData(signature!);
       } catch (error) {
         console.error("Failed to sign data with PKP:", error);
         setValidationError("Failed to sign data with PKP. Please try again.");
+      }
+    }
+  };
+
+  const verifySignature = async () => {
+    if (signedData && mintedPkp) {
+      try {
+        const dataSigned = `0x${signedData.dataSigned}`;
+        const encodedSig = ethers.utils.joinSignature({
+          v: signedData.recid,
+          r: `0x${signedData.r}`,
+          s: `0x${signedData.s}`,
+        });
+
+        const recoveredAddress = ethers.utils.recoverAddress(
+          dataSigned,
+          encodedSig
+        );
+
+        setVerifiedAddress(recoveredAddress);
+
+        const isValid =
+          recoveredAddress.toLowerCase() === mintedPkp.ethAddress.toLowerCase();
+        setValidationError(
+          isValid
+            ? null
+            : "Signature verification failed - addresses don't match!"
+        );
+      } catch (error) {
+        console.error("Failed to verify signature:", error);
+        setValidationError("Failed to verify signature. Please try again.");
       }
     }
   };
@@ -119,7 +154,9 @@ function App() {
         ) : (
           <div>
             <p>Authenticated as:</p>
-            <pre>{JSON.stringify(githubAuthData.userData, null, 2)}</pre>
+            <div className="code-wrap">
+              {JSON.stringify(githubAuthData.userData, null, 2)}
+            </div>
           </div>
         )}
         {validationError && (
@@ -139,7 +176,20 @@ function App() {
           {mintedPkp && (
             <div>
               <p>Successfully minted PKP!</p>
-              <p>Check the JavaScript console for PKP info</p>
+              <div>
+                <div>
+                  <strong>Token ID:</strong>
+                  <div className="code-wrap">{mintedPkp.tokenId}</div>
+                </div>
+                <div>
+                  <strong>Public Key:</strong>
+                  <div className="code-wrap">{mintedPkp.publicKey}</div>
+                </div>
+                <div>
+                  <strong>ETH Address:</strong>
+                  <div className="code-wrap">{mintedPkp.ethAddress}</div>
+                </div>
+              </div>
             </div>
           )}
           <hr />
@@ -187,7 +237,38 @@ function App() {
           {signedData && (
             <div>
               <p>Successfully signed data with PKP!</p>
-              <pre>{JSON.stringify(signedData, null, 2)}</pre>
+              <div className="code-wrap">
+                {JSON.stringify(signedData, null, 2)}
+              </div>
+            </div>
+          )}
+          <hr />
+        </div>
+      )}
+
+      {signedData && (
+        <div className="card">
+          <h4>Step 5: Verify Signature</h4>
+          <button onClick={verifySignature} disabled={!!verifiedAddress}>
+            {verifiedAddress ? "Signature Verified" : "Verify Signature"}
+          </button>
+          {verifiedAddress && (
+            <div>
+              <p>
+                <strong>Recovered Address:</strong>
+              </p>
+              <div className="code-wrap">{verifiedAddress}</div>
+              <p>
+                <strong>PKP ETH Address:</strong>
+              </p>
+              <div className="code-wrap">{mintedPkp?.ethAddress}</div>
+              {validationError ? (
+                <p style={{ color: "red" }}>{validationError}</p>
+              ) : (
+                <p style={{ color: "green" }}>
+                  ✓ Addresses match! Signature is valid.
+                </p>
+              )}
             </div>
           )}
           <hr />
