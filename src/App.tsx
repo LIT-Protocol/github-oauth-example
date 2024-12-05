@@ -1,7 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import type { SigResponse } from "@lit-protocol/types";
 import { ethers } from "ethers";
-import { verifyMessage } from "ethers/lib/utils";
 
 import GitHubLoginButton from "./GitHubLoginButton";
 import GitHubCallback from "./GitHubCallback";
@@ -215,17 +214,12 @@ function App() {
       {pkpSessionSigs && (
         <div className="card">
           <h4>Step 4: Sign Data with PKP</h4>
-          <div style={{ marginBottom: "1rem" }}>
+          <div className="input-button-container">
             <input
               type="text"
               value={messageToSign}
               onChange={(e) => setMessageToSign(e.target.value)}
               placeholder="Enter a message to sign"
-              style={{
-                padding: "0.5rem",
-                marginRight: "1rem",
-                width: "300px",
-              }}
             />
             <button
               onClick={handleSignData}
