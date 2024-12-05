@@ -19,6 +19,7 @@ function App() {
   );
   const [validationError, setValidationError] = useState<string | null>(null);
   const [signedData, setSignedData] = useState<SigResponse | null>(null);
+  const [messageToSign, setMessageToSign] = useState<string>("");
 
   const isCallback = window.location.pathname === "/callback";
 
@@ -77,7 +78,7 @@ function App() {
         const signature = await pkpSign(
           pkpSessionSigs,
           mintedPkp.publicKey,
-          "123"
+          messageToSign || "Please enter a message"
         );
         setSignedData(signature!);
       } catch (error) {
@@ -164,9 +165,25 @@ function App() {
       {pkpSessionSigs && (
         <div className="card">
           <h4>Step 4: Sign Data with PKP</h4>
-          <button onClick={handleSignData} disabled={!!signedData}>
-            {signedData ? "Data Signed" : "Sign Data with PKP"}
-          </button>
+          <div style={{ marginBottom: "1rem" }}>
+            <input
+              type="text"
+              value={messageToSign}
+              onChange={(e) => setMessageToSign(e.target.value)}
+              placeholder="Enter a message to sign"
+              style={{
+                padding: "0.5rem",
+                marginRight: "1rem",
+                width: "300px",
+              }}
+            />
+            <button
+              onClick={handleSignData}
+              disabled={!!signedData || !messageToSign}
+            >
+              {signedData ? "Data Signed" : "Sign Data with PKP"}
+            </button>
+          </div>
           {signedData && (
             <div>
               <p>Successfully signed data with PKP!</p>
