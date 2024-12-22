@@ -14,6 +14,7 @@ interface GitHubLoginButtonProps {
 }
 
 const GitHubLoginButton = ({
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   dataOnauth,
   buttonSize = "medium",
 }: GitHubLoginButtonProps) => {

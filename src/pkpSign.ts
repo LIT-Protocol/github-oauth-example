@@ -1,21 +1,22 @@
 import { ethers } from "ethers";
 import { LitNodeClient } from "@lit-protocol/lit-node-client";
-import { LitNetwork } from "@lit-protocol/constants";
+import { LIT_NETWORK } from "@lit-protocol/constants";
+import { SessionSigs } from "@lit-protocol/types"
 
 import { getLitNodeClient } from "./utils";
 
-const LIT_NETWORK =
-  LitNetwork[import.meta.env.VITE_LIT_NETWORK as keyof typeof LitNetwork];
+const LitNetwork =
+LIT_NETWORK[import.meta.env.VITE_LIT_NETWORK as keyof typeof LIT_NETWORK];
 
 export const pkpSign = async (
-  litSessionSigs: any,
+  litSessionSigs: SessionSigs,
   pkpPublicKey: string,
   dataToSign: string
 ) => {
   let litNodeClient: LitNodeClient;
   try {
     console.log("🔄 Signing data with PKP...");
-    litNodeClient = await getLitNodeClient(LIT_NETWORK);
+    litNodeClient = await getLitNodeClient(LitNetwork);
 
     const res = await litNodeClient.pkpSign({
       pubKey: pkpPublicKey,

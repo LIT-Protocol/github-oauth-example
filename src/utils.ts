@@ -1,8 +1,8 @@
 import * as ethers from "ethers";
 import { LitContracts } from "@lit-protocol/contracts-sdk";
-import { LitNetwork } from "@lit-protocol/constants";
+import { LIT_NETWORKS_KEYS } from "@lit-protocol/types";
 import { LitNodeClient } from "@lit-protocol/lit-node-client";
-// @ts-ignore
+// @ts-expect-error: TypeScript cannot find module declaration for 'ipfs-only-hash'
 import IpfsHash from "ipfs-only-hash";
 import bs58 from "bs58";
 
@@ -23,7 +23,7 @@ export const getEthersSigner = async () => {
 };
 
 let litNodeClient: LitNodeClient | null = null;
-export const getLitNodeClient = async (litNetwork: LitNetwork) => {
+export const getLitNodeClient = async (litNetwork: LIT_NETWORKS_KEYS) => {
   if (litNodeClient === null) {
     console.log(`🔄 Connecting LitNode client to the ${litNetwork} network...`);
     litNodeClient = new LitNodeClient({
@@ -40,7 +40,7 @@ export const getLitNodeClient = async (litNetwork: LitNetwork) => {
 let litContractClient: LitContracts | null = null;
 export const getLitContractsClient = async (
   ethersSigner: ethers.providers.JsonRpcSigner,
-  litNetwork: LitNetwork
+  litNetwork: LIT_NETWORKS_KEYS
 ) => {
   if (litContractClient === null) {
     console.log("🔄 Connecting LitContracts client to the network...");
@@ -119,7 +119,7 @@ export const getPkpInfoFromMintReceipt = async (
 
 export const getCapacityCredit = async (
   ethersSigner: ethers.providers.JsonRpcSigner,
-  litNetwork: LitNetwork
+  litNetwork: LIT_NETWORKS_KEYS
 ) => {
   try {
     const litContracts = await getLitContractsClient(ethersSigner, litNetwork);

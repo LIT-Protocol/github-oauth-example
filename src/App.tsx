@@ -65,7 +65,7 @@ function App() {
           mintedPkp.tokenId
         );
         const sessionSigs = await getPkpSessionSigs(githubAuthData, mintedPkp);
-        setPkpSessionSigs(sessionSigs);
+        setPkpSessionSigs(sessionSigs!);
       } catch (error) {
         console.error("Failed to get PKP session signatures:", error);
         setValidationError(

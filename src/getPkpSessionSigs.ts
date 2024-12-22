@@ -1,13 +1,13 @@
 import { LitNodeClient } from "@lit-protocol/lit-node-client";
-import { LitNetwork } from "@lit-protocol/constants";
-import { LitAbility, LitPKPResource } from "@lit-protocol/auth-helpers";
+import { LIT_NETWORK, LIT_ABILITY } from "@lit-protocol/constants";
+import { LitPKPResource } from "@lit-protocol/auth-helpers";
 
 import type { GitHubAuthData, MintedPkp } from "./types";
 import { litActionCode } from "./litAction";
 import { getCapacityCredit, getEthersSigner, getLitNodeClient } from "./utils";
 
-const LIT_NETWORK =
-  LitNetwork[import.meta.env.VITE_LIT_NETWORK as keyof typeof LitNetwork];
+const LitNetwork =
+LIT_NETWORK[import.meta.env.VITE_LIT_NETWORK as keyof typeof LIT_NETWORK];
 
 export const getPkpSessionSigs = async (
   githubAuthData: GitHubAuthData,
@@ -17,8 +17,8 @@ export const getPkpSessionSigs = async (
 
   try {
     const ethersSigner = await getEthersSigner();
-    litNodeClient = await getLitNodeClient(LIT_NETWORK);
-    const capacityTokenId = await getCapacityCredit(ethersSigner, LIT_NETWORK);
+    litNodeClient = await getLitNodeClient(LitNetwork);
+    const capacityTokenId = await getCapacityCredit(ethersSigner, LitNetwork);
 
     console.log("🔄 Creating capacityDelegationAuthSig...");
     const { capacityDelegationAuthSig } =
@@ -47,7 +47,7 @@ export const getPkpSessionSigs = async (
       resourceAbilityRequests: [
         {
           resource: new LitPKPResource("*"),
-          ability: LitAbility.PKPSigning,
+          ability: LIT_ABILITY.PKPSigning,
         },
       ],
       expiration: new Date(Date.now() + 1000 * 60 * 10).toISOString(), // 10 minutes

@@ -1,7 +1,7 @@
 import {
-  AuthMethodScope,
-  AuthMethodType,
-  LitNetwork,
+  AUTH_METHOD_SCOPE,
+  AUTH_METHOD_TYPE,
+  LIT_NETWORK,
 } from "@lit-protocol/constants";
 import bs58 from "bs58";
 
@@ -15,13 +15,13 @@ import {
   getPkpMintCost,
 } from "./utils";
 
-const LIT_NETWORK =
-  LitNetwork[import.meta.env.VITE_LIT_NETWORK as keyof typeof LitNetwork];
+const LitNetwork =
+LIT_NETWORK[import.meta.env.VITE_LIT_NETWORK as keyof typeof LIT_NETWORK];
 
 export const mintPkp = async (githubUser: GitHubUser) => {
   try {
     const ethersSigner = await getEthersSigner();
-    const litContracts = await getLitContractsClient(ethersSigner, LIT_NETWORK);
+    const litContracts = await getLitContractsClient(ethersSigner, LitNetwork);
     const pkpMintCost = await getPkpMintCost(litContracts);
     const {
       authMethodType: githubAuthMethodType,
@@ -31,8 +31,8 @@ export const mintPkp = async (githubUser: GitHubUser) => {
     console.log("🔄 Minting new PKP...");
     const tx =
       await litContracts.pkpHelperContract.write.mintNextAndAddAuthMethods(
-        AuthMethodType.LitAction, // keyType
-        [AuthMethodType.LitAction, githubAuthMethodType], // permittedAuthMethodTypes
+        AUTH_METHOD_TYPE.LitAction, // keyType
+        [AUTH_METHOD_TYPE.LitAction, githubAuthMethodType], // permittedAuthMethodTypes
         [
           `0x${Buffer.from(
             bs58.decode(await getLitActionCodeIpfsCid())
@@ -40,7 +40,7 @@ export const mintPkp = async (githubUser: GitHubUser) => {
           githubAuthMethodId,
         ], // permittedAuthMethodIds
         ["0x", "0x"], // permittedAuthMethodPubkeys
-        [[AuthMethodScope.SignAnything], [AuthMethodScope.NoPermissions]], // permittedAuthMethodScopes
+        [[AUTH_METHOD_SCOPE.SignAnything], [AUTH_METHOD_SCOPE.NoPermissions]], // permittedAuthMethodScopes
         true, // addPkpEthAddressAsPermittedAddress
         true, // sendPkpToItself
         { value: pkpMintCost }

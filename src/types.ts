@@ -1,10 +1,12 @@
+import { SessionSigs } from "@lit-protocol/types"
+
 export type MintedPkp = {
   tokenId: string;
   publicKey: string;
   ethAddress: string;
 };
 
-export type PkpSessionSigs = any;
+export type PkpSessionSigs = SessionSigs;
 
 export interface GitHubUser {
   id: number;
