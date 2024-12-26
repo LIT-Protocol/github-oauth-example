@@ -1,28 +1,24 @@
 import { useState } from "react";
-import type { SigResponse } from "@lit-protocol/types";
-import { ethers } from "ethers";
-
-import GitHubLoginButton from "./GitHubLoginButton";
 import GitHubCallback from "./GitHubCallback";
-import { mintPkp } from "./mintPkp";
+import { mintPkp } from "./generateWK";
 import { GitHubUser } from "./types";
-import { getPkpSessionSigs } from "./getPkpSessionSigs";
-import type { GitHubAuthData, MintedPkp, PkpSessionSigs } from "./types";
-import { pkpSign } from "./pkpSign";
+import type { GitHubAuthData, MintedPkp } from "./types";
+import { signMessageWithWrappedKey } from "./WKSign";
 import "./App.css";
+import { GeneratePrivateKeyResult } from "@lit-protocol/wrapped-keys";
+import GitHubLoginButton from "./GitHubLoginButton";
 
 function App() {
   const [githubAuthData, setGithubAuthData] = useState<GitHubAuthData | null>(
     null
   );
   const [mintedPkp, setMintedPkp] = useState<MintedPkp | null>(null);
-  const [pkpSessionSigs, setPkpSessionSigs] = useState<PkpSessionSigs | null>(
+  const [wrappedKey, setWrappedKey] = useState<GeneratePrivateKeyResult | null>(
     null
   );
   const [validationError, setValidationError] = useState<string | null>(null);
-  const [signedData, setSignedData] = useState<SigResponse | null>(null);
+  const [signedData, setSignedData] = useState<string | null>(null);
   const [messageToSign, setMessageToSign] = useState<string>("");
-  const [verifiedAddress, setVerifiedAddress] = useState<string | null>(null);
 
   const isCallback = window.location.pathname === "/callback";
 
@@ -45,11 +41,12 @@ function App() {
     window.history.pushState({}, "", "/");
   };
 
-  const handleMintPkp = async () => {
+  const handleGenerateWK = async () => {
     if (githubAuthData) {
       try {
-        const minted = await mintPkp(githubAuthData.userData);
-        setMintedPkp(minted!);
+        const result = await mintPkp(githubAuthData);
+        setMintedPkp(result!.pkp);
+        setWrappedKey(result!.wk);
       } catch (error) {
         console.error("Failed to mint PKP:", error);
         setValidationError("Failed to mint PKP. Please try again.");
@@ -57,67 +54,19 @@ function App() {
     }
   };
 
-  const handleGetPkpSessionSigs = async () => {
-    if (githubAuthData && mintedPkp) {
-      try {
-        console.log(
-          "🔄 Getting PKP session signatures with PKP Token ID:",
-          mintedPkp.tokenId
-        );
-        const sessionSigs = await getPkpSessionSigs(githubAuthData, mintedPkp);
-        setPkpSessionSigs(sessionSigs!);
-      } catch (error) {
-        console.error("Failed to get PKP session signatures:", error);
-        setValidationError(
-          "Failed to get PKP session signatures. Please try again."
-        );
-      }
-    }
-  };
-
   const handleSignData = async () => {
-    if (pkpSessionSigs && mintedPkp) {
+    if (wrappedKey) {
       try {
-        const signature = await pkpSign(
-          pkpSessionSigs,
-          mintedPkp.publicKey,
+        const signature = await signMessageWithWrappedKey(
+          githubAuthData!,
+          wrappedKey,
+          mintedPkp!,
           messageToSign
         );
         setSignedData(signature!);
       } catch (error) {
-        console.error("Failed to sign data with PKP:", error);
-        setValidationError("Failed to sign data with PKP. Please try again.");
-      }
-    }
-  };
-
-  const verifySignature = async () => {
-    if (signedData && mintedPkp) {
-      try {
-        const dataSigned = `0x${signedData.dataSigned}`;
-        const encodedSig = ethers.utils.joinSignature({
-          v: signedData.recid,
-          r: `0x${signedData.r}`,
-          s: `0x${signedData.s}`,
-        });
-
-        const recoveredAddress = ethers.utils.recoverAddress(
-          dataSigned,
-          encodedSig
-        );
-
-        setVerifiedAddress(recoveredAddress);
-
-        const isValid =
-          recoveredAddress.toLowerCase() === mintedPkp.ethAddress.toLowerCase();
-        setValidationError(
-          isValid
-            ? null
-            : "Signature verification failed - addresses don't match!"
-        );
-      } catch (error) {
-        console.error("Failed to verify signature:", error);
-        setValidationError("Failed to verify signature. Please try again.");
+        console.error("Failed to sign data:", error);
+        setValidationError("Failed to sign data. Please try again.");
       }
     }
   };
@@ -168,25 +117,27 @@ function App() {
 
       {githubAuthData && (
         <div className="card">
-          <h4>Step 2: Mint PKP</h4>
-          <button onClick={handleMintPkp} disabled={!!mintedPkp}>
-            {mintedPkp ? "PKP Minted" : "Mint PKP"}
+          <h4>Step 2: Create Solana Wrapped Key</h4>
+          <button onClick={handleGenerateWK} disabled={!!wrappedKey}>
+            {wrappedKey ? "Wrapped Key Generated" : "Generate Wrapped Key"}
           </button>
-          {mintedPkp && (
+          {wrappedKey && (
             <div>
-              <p>Successfully minted PKP!</p>
+              <p>Successfully generated wrapped key!</p>
               <div>
                 <div>
-                  <strong>Token ID:</strong>
-                  <div className="code-wrap">{mintedPkp.tokenId}</div>
+                  <strong>Generated Public Key:</strong>
+                  <div className="code-wrap">
+                    {wrappedKey.generatedPublicKey}
+                  </div>
                 </div>
                 <div>
-                  <strong>Public Key:</strong>
-                  <div className="code-wrap">{mintedPkp.publicKey}</div>
+                  <strong>Wrapped Key ID:</strong>
+                  <div className="code-wrap">{wrappedKey.id}</div>
                 </div>
                 <div>
                   <strong>ETH Address:</strong>
-                  <div className="code-wrap">{mintedPkp.ethAddress}</div>
+                  <div className="code-wrap">{wrappedKey.pkpAddress}</div>
                 </div>
               </div>
             </div>
@@ -195,25 +146,9 @@ function App() {
         </div>
       )}
 
-      {mintedPkp && (
+      {wrappedKey && (
         <div className="card">
-          <h4>Step 3: Get PKP Session Signatures</h4>
-          <button onClick={handleGetPkpSessionSigs} disabled={!!pkpSessionSigs}>
-            {pkpSessionSigs ? "Session Sigs Retrieved" : "Get PKP Session Sigs"}
-          </button>
-          {pkpSessionSigs && (
-            <div>
-              <p>Successfully generated Session Signatures!</p>
-              <p>Check the JavaScript console for Session Sigs info</p>
-            </div>
-          )}
-          <hr />
-        </div>
-      )}
-
-      {pkpSessionSigs && (
-        <div className="card">
-          <h4>Step 4: Sign Data with PKP</h4>
+          <h4>Step 3: Sign Data with WK</h4>
           <div className="input-button-container">
             <input
               type="text"
@@ -225,44 +160,15 @@ function App() {
               onClick={handleSignData}
               disabled={!!signedData || !messageToSign}
             >
-              {signedData ? "Data Signed" : "Sign Data with PKP"}
+              {signedData ? "Data Signed" : "Sign Data with WK"}
             </button>
           </div>
           {signedData && (
             <div>
-              <p>Successfully signed data with PKP!</p>
+              <p>Successfully signed data with WK!</p>
               <div className="code-wrap">
                 {JSON.stringify(signedData, null, 2)}
               </div>
-            </div>
-          )}
-          <hr />
-        </div>
-      )}
-
-      {signedData && (
-        <div className="card">
-          <h4>Step 5: Verify Signature</h4>
-          <button onClick={verifySignature} disabled={!!verifiedAddress}>
-            {verifiedAddress ? "Signature Verified" : "Verify Signature"}
-          </button>
-          {verifiedAddress && (
-            <div>
-              <p>
-                <strong>Recovered Address:</strong>
-              </p>
-              <div className="code-wrap">{verifiedAddress}</div>
-              <p>
-                <strong>PKP ETH Address:</strong>
-              </p>
-              <div className="code-wrap">{mintedPkp?.ethAddress}</div>
-              {validationError ? (
-                <p style={{ color: "red" }}>{validationError}</p>
-              ) : (
-                <p style={{ color: "green" }}>
-                  ✓ Addresses match! Signature is valid.
-                </p>
-              )}
             </div>
           )}
           <hr />

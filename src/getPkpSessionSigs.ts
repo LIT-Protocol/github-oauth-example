@@ -1,13 +1,13 @@
 import { LitNodeClient } from "@lit-protocol/lit-node-client";
 import { LIT_NETWORK, LIT_ABILITY } from "@lit-protocol/constants";
-import { LitPKPResource } from "@lit-protocol/auth-helpers";
+import { LitActionResource, LitPKPResource } from "@lit-protocol/auth-helpers";
 
 import type { GitHubAuthData, MintedPkp } from "./types";
 import { litActionCode } from "./litAction";
 import { getCapacityCredit, getEthersSigner, getLitNodeClient } from "./utils";
 
 const LitNetwork =
-LIT_NETWORK[import.meta.env.VITE_LIT_NETWORK as keyof typeof LIT_NETWORK];
+  LIT_NETWORK[import.meta.env.VITE_LIT_NETWORK as keyof typeof LIT_NETWORK];
 
 export const getPkpSessionSigs = async (
   githubAuthData: GitHubAuthData,
@@ -45,6 +45,10 @@ export const getPkpSessionSigs = async (
         pkpTokenId: mintedPkp.tokenId,
       },
       resourceAbilityRequests: [
+        {
+          resource: new LitActionResource("*"),
+          ability: LIT_ABILITY.LitActionExecution,
+        },
         {
           resource: new LitPKPResource("*"),
           ability: LIT_ABILITY.PKPSigning,

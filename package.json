@@ -13,6 +13,7 @@
     "@lit-protocol/constants": "^7.0.2",
     "@lit-protocol/contracts-sdk": "^7.0.2",
     "@lit-protocol/lit-node-client": "^7.0.2",
+    "@lit-protocol/wrapped-keys": "^7.0.3",
     "@octokit/auth-oauth-app": "^8.1.1",
     "@octokit/rest": "^21.0.2",
     "bs58": "^6.0.0",

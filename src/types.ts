@@ -1,4 +1,4 @@
-import { SessionSigs } from "@lit-protocol/types"
+import { SessionSigs } from "@lit-protocol/types";
 
 export type MintedPkp = {
   tokenId: string;

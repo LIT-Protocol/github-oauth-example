@@ -5,20 +5,27 @@ import {
 } from "@lit-protocol/constants";
 import bs58 from "bs58";
 
-import { type GitHubUser } from "./types";
+import { type GitHubAuthData } from "./types";
 import {
   getEthersSigner,
   getGithubAuthMethodInfo,
   getLitActionCodeIpfsCid,
   getLitContractsClient,
+  getLitNodeClient,
   getPkpInfoFromMintReceipt,
   getPkpMintCost,
 } from "./utils";
 
-const LitNetwork =
-LIT_NETWORK[import.meta.env.VITE_LIT_NETWORK as keyof typeof LIT_NETWORK];
+import { LitNodeClient } from "@lit-protocol/lit-node-client";
 
-export const mintPkp = async (githubUser: GitHubUser) => {
+import { getPkpSessionSigs } from "./getPkpSessionSigs";
+import { api } from "@lit-protocol/wrapped-keys";
+const { generatePrivateKey } = api;
+
+const LitNetwork =
+  LIT_NETWORK[import.meta.env.VITE_LIT_NETWORK as keyof typeof LIT_NETWORK];
+
+export const mintPkp = async (githubAuthData: GitHubAuthData) => {
   try {
     const ethersSigner = await getEthersSigner();
     const litContracts = await getLitContractsClient(ethersSigner, LitNetwork);
@@ -26,7 +33,7 @@ export const mintPkp = async (githubUser: GitHubUser) => {
     const {
       authMethodType: githubAuthMethodType,
       authMethodId: githubAuthMethodId,
-    } = getGithubAuthMethodInfo(githubUser);
+    } = getGithubAuthMethodInfo(githubAuthData.userData);
 
     console.log("🔄 Minting new PKP...");
     const tx =
@@ -45,10 +52,30 @@ export const mintPkp = async (githubUser: GitHubUser) => {
         true, // sendPkpToItself
         { value: pkpMintCost }
       );
+
     const receipt = await tx.wait();
     console.log(`✅ Minted new PKP`);
+    const mintedPkp = await getPkpInfoFromMintReceipt(receipt, litContracts);
 
-    return getPkpInfoFromMintReceipt(receipt, litContracts);
+    const sessionSigs = await getPkpSessionSigs(githubAuthData, mintedPkp);
+
+    let litNodeClient: LitNodeClient = await getLitNodeClient(LitNetwork);
+
+    console.log("🔄 Generating Wrapped Key...");
+    const createWrappedKey = await generatePrivateKey({
+      pkpSessionSigs: sessionSigs!,
+      network: "solana",
+      memo: "This is a test memo",
+      litNodeClient: litNodeClient,
+    });
+    console.log(`✅ Generated Wrapped Key`);
+
+    const result = {
+      pkp: mintedPkp,
+      wk: createWrappedKey,
+    };
+
+    return result;
   } catch (error) {
     console.error(error);
   }
